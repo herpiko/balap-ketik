@@ -1,0 +1,192 @@
+<!doctype html>
+<html ng-app="App">
+  <head>
+    <title>BalapKetik</title>
+    <style>
+      .correct {
+        color: blue !important;
+      }
+      .incorrect {
+        color: red !important;
+      }
+      .ease {
+        -webkit-transition: all 0.7s ease;
+        -moz-transition: all 0.7s ease;
+        -o-transition: all 0.7s ease;
+        -ms-transition: all 0.7s ease;
+      }
+    </style>
+  </head>
+  <body ng-controller="AppCtrl">
+      <div>
+        {{appName}} &nbsp;<span ng-hide="id"><input ng-model="name"><button ng-disabled="!name" ng-click="emitJoin(name)">Ikut</button></span>
+        &nbsp;&nbsp;<b ng-show="count">Mulai dalam {{count}}</b>
+        <br>
+        <br>
+        <button ng-disabled="!id" ng-show="seconds<1 && !count && !race" ng-click="emitStart()">Mulai</button>
+        <button ng-show="seconds>0" ng-click="emitStop()">Nyerah ah!</button>
+        <!--button style="float:right" ng-show="!count" ng-click="emitRematch()">Ulangi</button-->
+        <br>
+        <br>
+        <div ng-repeat="id in participants track by $index">
+          <div style="display:inline-block;width:100px;">{{id}}</div>
+          <div class="ease" style="display:inline-block" id="id{{id}}"></div>
+          <div style="display:inline-block">&gt;</div>
+        </div>
+        <br>
+        <p style="padding:5px;width:500px;">
+        <span ng-repeat="word in source track by $index" ng-class="{'correct':word.state=='correct' && race, 'incorrect':word.state=='incorrect' && race,'current':$index==step && race}">{{word.word}}&nbsp;</span><span style="background:yellow;padding:2px 4px;">Enter</span>
+          </p>
+          Ketik : <input ng-model="input" ng-keypress="strike($event)">
+          <br>Detik : {{seconds}}
+      </div>
+    <script src="http://192.168.11.158:8000/socket.io-1.2.0.js"></script>
+    <script src="http://192.168.11.158:8000/jquery.js"></script>
+    <script src="http://192.168.11.158:8000/angular.js"></script>
+    <script>
+      var app = angular.module('App', [])
+      .controller('AppCtrl', function($scope, $rootScope) {
+        $scope.socket = io();
+        $scope.appName = 'BalapKetik';
+        $scope.timer;
+        $scope.sourceText = 'Tiga napi, Yuswitar, Rusli dan Faisal, ditangkap oleh aparat Polres Bireuen.';
+        $scope.sourceText = $scope.sourceText.split(' ');
+        $scope.source = [];
+        for (var i in $scope.sourceText) {
+          $scope.source.push({word:$scope.sourceText[i]});
+        }
+        $scope.length = $scope.source.length - 1; // Start from 0
+        $scope.step = 0;
+        $scope.input = '';
+        $scope.strike = function(event){
+          if (!$scope.race) {
+            setTimeout(function(){
+              $scope.input = '';
+              $scope.$apply();
+            }, 10)
+            return;
+          }
+          if ($scope.source[$scope.step].word == $scope.input) {
+            $scope.source[$scope.step].state = 'correct';
+            $scope.step++;
+            $scope.input = '';
+          
+            // set progress
+            var progress = parseInt($scope.step/$scope.length * 100 * 5);
+            $scope.socket.emit('progress', {id : $scope.id, progress : progress });
+            if ($scope.step == $scope.source.length) {
+              $scope.stop();
+              return;
+            }
+          }
+          console.log(event.keyCode);
+          if (event.keyCode==32) {
+            if ($scope.source[$scope.step].word != $scope.input) {
+              $scope.source[$scope.step].state = 'incorrect';
+            }
+          }
+        }
+        $scope.seconds = 0;
+        $scope.race = false;
+        $scope.count = null;
+        $scope.stop = function(){
+          $scope.race = false;
+          for (var i in $scope.source) {
+            $scope.source[i].state = null;
+          }
+          $scope.step = 0;
+          clearInterval($scope.timer);
+          var totalTime = angular.copy($scope.seconds);
+          $scope.seconds = 0;
+          var wpm = (60/totalTime) * $scope.length;
+          console.log('totalTime ' + totalTime);
+          if (totalTime > 0) {
+            return alert('Selesai dalam ' + totalTime + ' detik dalam kecepatan ' + parseInt(wpm) + ' kata per detik');
+          }
+          $scope.$apply();
+  
+        }
+        $scope.start = function(){
+          for (var i in $scope.participants) {
+            $('#id' + $scope.participants[i]).width(0);
+          }
+          $scope.source[0].state = 'incorrect';
+          console.log('start countdown');
+          $scope.count = 10;
+          clearInterval($scope.countdown)
+          clearInterval($scope.timer)
+          $scope.countdown = setInterval(function(){
+            console.log($scope.count);
+            if ($scope.count > 1) {
+              $scope.count = $scope.count - 1;
+            } else {
+              $scope.count = '0';
+            }
+            $scope.$apply();
+            if ($scope.count == 0) {
+              $scope.race = true;
+              clearInterval($scope.countdown)
+            } 
+          }, 1000)
+          setTimeout(function(){
+            $scope.race = true;
+            console.log('race!');
+            $scope.timer = setInterval(function(){
+              $scope.seconds = $scope.seconds + 1;
+              $scope.$apply();
+            },1000)
+          }, 10000)
+        }
+
+        $scope.participants = [];
+        $scope.id = '';;
+
+        $scope.emitStart = function(){
+          $scope.count = 10;
+          $scope.socket.emit('start');
+        }
+        $scope.emitStop = function(){
+          $scope.socket.emit('stop');
+        }
+        $scope.emitRematch = function(){
+          $scope.race = false;
+          clearInterval($scope.countdown)
+          clearInterval($scope.timer)
+          $scope.socket.emit('rematch');
+          $scope.emitStop();
+        }
+        $scope.emitJoin = function(id){
+          $scope.id = id
+          $scope.socket.emit('join', $scope.id);
+        }
+
+        // task
+
+        // handle event;
+        $scope.socket.on('start', function(){
+          $scope.start();
+        });
+        $scope.socket.on('stop', function(id){
+          $scope.stop();  
+        });
+        $scope.socket.on('join', function(participants){
+          $scope.participants = participants;
+          $scope.$apply();
+        });
+        $scope.socket.on('rematch', function(participants){
+          if (!$scope.id) {
+            return;
+          }
+          $scope.socket.emit('join', $scope.id);
+          $scope.$apply();
+        });
+        $scope.socket.on('progress', function(obj){
+          $('#id' + obj.id).width(obj.progress);
+        });
+        
+
+        $scope.emitRematch();
+      })
+    </script>
+  </body>
+</html>
