@@ -1,9 +1,5 @@
 # BalapKetik
 
-- ``npm install -g http-server``
 - ``npm install``
 - ``node index.js``
-
-
-- ``(cd assets && http-server -p 8000)``
-
+- Open in browser :  ``http://localhost:3000``

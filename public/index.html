@@ -25,7 +25,6 @@
         <br>
         <button ng-disabled="!id" ng-show="seconds<1 && !count && !race" ng-click="emitStart()">Mulai</button>
         <button ng-show="seconds>0" ng-click="emitStop()">Nyerah ah!</button>
-        <!--button style="float:right" ng-show="!count" ng-click="emitRematch()">Ulangi</button-->
         <br>
         <br>
         <div ng-repeat="id in participants track by $index">
@@ -40,9 +39,9 @@
           Ketik : <input ng-model="input" ng-keypress="strike($event)">
           <br>Detik : {{seconds}}
       </div>
-    <script src="http://192.168.11.158:8000/socket.io-1.2.0.js"></script>
-    <script src="http://192.168.11.158:8000/jquery.js"></script>
-    <script src="http://192.168.11.158:8000/angular.js"></script>
+    <script src="http://localhost:3000/assets/socket.io-1.2.0.js"></script>
+    <script src="http://localhost:3000/assets/jquery.js"></script>
+    <script src="http://localhost:3000/assets/angular.js"></script>
     <script>
       var app = angular.module('App', [])
       .controller('AppCtrl', function($scope, $rootScope) {
@@ -138,9 +137,11 @@
           }, 10000)
         }
 
+        // Init value
         $scope.participants = [];
         $scope.id = '';;
 
+        // task
         $scope.emitStart = function(){
           $scope.count = 10;
           $scope.socket.emit('start');
@@ -160,7 +161,6 @@
           $scope.socket.emit('join', $scope.id);
         }
 
-        // task
 
         // handle event;
         $scope.socket.on('start', function(){
@@ -184,7 +184,6 @@
           $('#id' + obj.id).width(obj.progress);
         });
         
-
         $scope.emitRematch();
       })
     </script>
