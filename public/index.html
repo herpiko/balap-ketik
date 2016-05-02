@@ -16,15 +16,26 @@
         -ms-transition: all 0.7s ease;
       }
     </style>
+    <link rel="stylesheet" type="text/css" href="assets/bootstrap.css">
   </head>
   <body ng-controller="AppCtrl">
-      <div>
-        {{appName}} &nbsp;<span ng-hide="id"><input ng-model="name"><button ng-disabled="!name" ng-click="emitJoin(name)">Ikut</button></span>
+    <div class="container">
+      <div class="page-header">
+        <h1 align="center">{{appName}}</h1>
+        <br><span ng-hide="id">
+          <form align="center" role="form">
+            <div class="form-group">
+              <input class="form-control" ng-model="name"></span>
+          </form>
         &nbsp;&nbsp;<b ng-show="count">Mulai dalam {{count}}</b>
-        <br>
-        <br>
-        <button ng-disabled="!id" ng-show="seconds<1 && !count && !race" ng-click="emitStart()">Mulai</button>
-        <button ng-show="seconds>0" ng-click="emitStop()">Nyerah ah!</button>
+        </div>
+      </div>
+    </div>
+
+        <div align="center">
+        <button class="btn btn-sm btn-info" ng-disabled="!name" ng-click="emitJoin(name)">Ikut</button>
+        <button class="btn btn-sm btn-success" ng-disabled="!id" ng-show="seconds<1 && !count && !race" ng-click="emitStart()">Mulai</button>
+        <button class="btn btn-sm btn-warning" ng-show="seconds>0" ng-click="emitStop()">Nyerah ah!</button></div>
         <br>
         <br>
         <div ng-repeat="id in participants track by $index">
@@ -34,10 +45,16 @@
         </div>
         <br>
         <p style="padding:5px;width:500px;">
-        <span ng-repeat="word in source track by $index" ng-class="{'correct':word.state=='correct' && race, 'incorrect':word.state=='incorrect' && race,'current':$index==step && race}">{{word.word}}&nbsp;</span><span style="background:yellow;padding:2px 4px;">Enter</span>
+        <div align="center">
+          <blockquote>
+          <span ng-repeat="word in source track by $index" ng-class="{'correct':word.state=='correct' && race, 'incorrect':word.state=='incorrect' && race,'current':$index==step && race}">{{word.word}}&nbsp;</span><span style="background:yellow;padding:2px 4px;">Enter</span>
           </p>
+          </blockquote>
+        </div>
+          <div align="center" role="form">
           Ketik : <input ng-model="input" ng-keypress="strike($event)">
           <br>Detik : {{seconds}}
+        </div>
       </div>
     <script src="http://localhost:3000/assets/socket.io-1.2.0.js"></script>
     <script src="http://localhost:3000/assets/jquery.js"></script>
@@ -69,7 +86,7 @@
             $scope.source[$scope.step].state = 'correct';
             $scope.step++;
             $scope.input = '';
-          
+
             // set progress
             var progress = parseInt($scope.step/$scope.length * 100 * 5);
             $scope.socket.emit('progress', {id : $scope.id, progress : progress });
@@ -103,7 +120,7 @@
             return alert('Selesai dalam ' + totalTime + ' detik dalam kecepatan ' + parseInt(wpm) + ' kata per detik');
           }
           $scope.$apply();
-  
+
         }
         $scope.start = function(){
           for (var i in $scope.participants) {
@@ -125,7 +142,7 @@
             if ($scope.count == 0) {
               $scope.race = true;
               clearInterval($scope.countdown)
-            } 
+            }
           }, 1000)
           setTimeout(function(){
             $scope.race = true;
@@ -167,7 +184,7 @@
           $scope.start();
         });
         $scope.socket.on('stop', function(id){
-          $scope.stop();  
+          $scope.stop();
         });
         $scope.socket.on('join', function(participants){
           $scope.participants = participants;
@@ -183,7 +200,7 @@
         $scope.socket.on('progress', function(obj){
           $('#id' + obj.id).width(obj.progress);
         });
-        
+
         $scope.emitRematch();
       })
     </script>
